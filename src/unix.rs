@@ -3,7 +3,7 @@ use std::os::unix::process::ExitStatusExt;
 use std::process::{Command, ExitStatus};
 
 mod common;
-use common::from_status;
+use common::{from_status, build_command};
 
 /// Deal with opening of browsers on Linux and *BSD - currently supports only the default browser
 ///
@@ -19,22 +19,22 @@ pub fn open_browser_internal(browser: Browser, url: &str) -> Result<()> {
 fn open_browser_unix(browser: Browser, url: &str) -> Result<ExitStatus> {
     match browser {
         Browser::Default => open_on_unix_using_browser_env(url)
-            .or_else(|_| -> Result<ExitStatus> { Command::new("xdg-open").arg(url).status() })
+            .or_else(|_| -> Result<ExitStatus> { build_command("xdg-open").arg(url).status() })
             .or_else(|r| -> Result<ExitStatus> {
                 if let Ok(desktop) = ::std::env::var("XDG_CURRENT_DESKTOP") {
                     if desktop == "KDE" {
-                        return Command::new("kioclient").arg("exec").arg(url).status();
+                        return build_command("kioclient").arg("exec").arg(url).status();
                     }
                 }
                 Err(r) // If either `if` check fails, fall through to the next or_else
             })
-            .or_else(|_| -> Result<ExitStatus> { Command::new("gvfs-open").arg(url).status() })
-            .or_else(|_| -> Result<ExitStatus> { Command::new("gnome-open").arg(url).status() })
+            .or_else(|_| -> Result<ExitStatus> { build_command("gvfs-open").arg(url).status() })
+            .or_else(|_| -> Result<ExitStatus> { build_command("gnome-open").arg(url).status() })
             .or_else(|_| -> Result<ExitStatus> {
-                Command::new("kioclient").arg("exec").arg(url).status()
+                build_command("kioclient").arg("exec").arg(url).status()
             })
             .or_else(|e| -> Result<ExitStatus> {
-                if let Ok(_child) = Command::new("x-www-browser").arg(url).spawn() {
+                if let Ok(_child) = build_command("x-www-browser").arg(url).spawn() {
                     return Ok(ExitStatusExt::from_raw(0));
                 }
                 Err(e)
@@ -59,7 +59,7 @@ fn open_on_unix_using_browser_env(url: &str) -> Result<ExitStatus> {
                 .replace("%c", ":")
                 .replace("%%", "%");
             let cmdarr: Vec<&str> = cmdline.split_whitespace().collect();
-            let mut cmd = Command::new(&cmdarr[0]);
+            let mut cmd = build_command(&cmdarr[0]);
             if cmdarr.len() > 1 {
                 cmd.args(&cmdarr[1..cmdarr.len()]);
             }

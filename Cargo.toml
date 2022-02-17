@@ -19,6 +19,7 @@ features = [
 
 [features]
 wasm-console = ["web-sys/console"]
+suppress-logs = []
 
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "0.3.6", features = ["combaseapi", "objbase", "shellapi", "winerror"] }
